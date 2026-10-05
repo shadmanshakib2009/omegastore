@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>OmegaStore Admin</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f5f7;
+    color: #222;
+}
+
+/* Header */
+.topbar {
+    background: #fff;
+    border-bottom: 1px solid #ddd;
+    padding: 18px 30px;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.topbar h2 {
+    font-size: 22px;
+}
+
+.topbar p {
+    color: #777;
+    margin-top: 4px;
+    font-size: 14px;
+}
+
+.logout {
+    background: #222;
+    color: white;
+    border: 0;
+    padding: 9px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Main */
+main {
+    padding: 30px;
+}
+
+/* Stats */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.stat {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    padding: 20px;
+}
+
+.stat span {
+    display: block;
+    color: #777;
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.stat strong {
+    font-size: 28px;
+}
+
+/* Orders */
+.orders {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 7px;
+    padding: 20px;
+}
+
+.section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-head h3 {
+    font-size: 19px;
+}
+
+select {
+    padding: 8px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background: white;
+}
+
+/* Table */
+.table-container {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th,
+td {
+    padding: 13px 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #fafafa;
+    font-size: 13px;
+}
+
+td {
+    font-size: 14px;
+}
+
+/* Status */
+.status {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 4px;
+    font-size: 12px;
+    background: #eee;
+}
+
+.status.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status.processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.status.completed {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status.cancelled {
+    background: #f8d7da;
+    color: #842029;
+}
+
+/* Action */
+.action {
+    padding: 7px 10px;
+    border: 1px solid #ccc;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.action:hover {
+    background: #f1f1f1;
+}
+
+/* Mobile */
+@media (max-width: 800px) {
+
+    .stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    main {
+        padding: 15px;
+    }
+
+    .topbar {
+        padding: 15px;
+    }
+}
+
+@media (max-width: 500px) {
+
+    .stats {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header class="topbar">
+
+    <div>
+        <h2>OmegaStore Admin</h2>
+        <p>Order Management</p>
+    </div>
+
+    <button class="logout" onclick="logout()">
+        Logout
+    </button>
+
+</header>
+
+
+<main>
+
+    <!-- Statistics -->
+
+    <section class="stats">
+
+        <div class="stat">
+            <span>Total Orders</span>
+            <strong id="totalOrders">0</strong>
+        </div>
+
+        <div class="stat">
+            <span>Pending</span>
+            <strong id="pendingOrders">0</strong>
+        </div>
+
+        <div class="stat">
+            <span>Processing</span>
+            <strong id="processingOrders">0</strong>
+        </div>
+
+        <div class="stat">
+            <span>Completed</span>
+            <strong id="completedOrders">0</strong>
+        </div>
+
+    </section>
+
+
+    <!-- Orders -->
+
+    <section class="orders">
+
+        <div class="section-head">
+
+            <h3>Orders</h3>
+
+            <select id="filter" onchange="loadOrders()">
+
+                <option value="all">
+                    All Orders
+                </option>
+
+                <option value="pending">
+                    Pending
+                </option>
+
+                <option value="processing">
+                    Processing
+                </option>
+
+                <option value="completed">
+                    Completed
+                </option>
+
+                <option value="cancelled">
+                    Cancelled
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="table-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Order</th>
+                        <th>Customer</th>
+                        <th>Package</th>
+                        <th>Payment</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="ordersTable"></tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+let orders = [
+
+    {
+        id: "ORD1001",
+        customer: "12345678 / 1234",
+        package: "86 Diamonds",
+        payment: "bKash",
+        amount: 140,
+        status: "pending"
+    },
+
+    {
+        id: "ORD1002",
+        customer: "87654321 / 5678",
+        package: "Weekly Pass",
+        payment: "Nagad",
+        amount: 200,
+        status: "processing"
+    },
+
+    {
+        id: "ORD1003",
+        customer: "45678912 / 2222",
+        package: "172 Diamonds",
+        payment: "Card",
+        amount: 275,
+        status: "completed"
+    }
+
+];
+
+
+function loadOrders() {
+
+    const filter =
+        document.getElementById("filter").value;
+
+    const table =
+        document.getElementById("ordersTable");
+
+    table.innerHTML = "";
+
+    let filteredOrders = orders;
+
+    if (filter !== "all") {
+
+        filteredOrders = orders.filter(
+            order => order.status === filter
+        );
+
+    }
+
+
+    filteredOrders.forEach(order => {
+
+        const row =
+            document.createElement("tr");
+
+
+        row.innerHTML = `
+
+            <td>
+                ${order.id}
+            </td>
+
+            <td>
+                ${order.customer}
+            </td>
+
+            <td>
+                ${order.package}
+            </td>
+
+            <td>
+                ${order.payment}
+            </td>
+
+            <td>
+                ৳${order.amount}
+            </td>
+
+            <td>
+
+                <span class="status ${order.status}">
+                    ${order.status}
+                </span>
+
+            </td>
+
+            <td>
+
+                <button
+                    class="action"
+                    onclick="changeStatus('${order.id}')">
+
+                    Change
+
+                </button>
+
+            </td>
+
+        `;
+
+
+        table.appendChild(row);
+
+    });
+
+
+    updateStats();
+
+}
+
+
+function changeStatus(id) {
+
+    const order =
+        orders.find(order => order.id === id);
+
+    if (!order) return;
+
+
+    const newStatus = prompt(
+
+        "Enter status:\n\n" +
+        "pending\n" +
+        "processing\n" +
+        "completed\n" +
+        "cancelled",
+
+        order.status
+
+    );
+
+
+    if (!newStatus) return;
+
+
+    const validStatuses = [
+
+        "pending",
+        "processing",
+        "completed",
+        "cancelled"
+
+    ];
+
+
+    if (!validStatuses.includes(
+        newStatus.toLowerCase()
+    )) {
+
+        alert("Invalid status");
+
+        return;
+
+    }
+
+
+    order.status =
+        newStatus.toLowerCase();
+
+
+    loadOrders();
+
+}
+
+
+function updateStats() {
+
+    document.getElementById(
+        "totalOrders"
+    ).textContent = orders.length;
+
+
+    document.getElementById(
+        "pendingOrders"
+    ).textContent =
+        orders.filter(
+            order => order.status === "pending"
+        ).length;
+
+
+    document.getElementById(
+        "processingOrders"
+    ).textContent =
+        orders.filter(
+            order => order.status === "processing"
+        ).length;
+
+
+    document.getElementById(
+        "completedOrders"
+    ).textContent =
+        orders.filter(
+            order => order.status === "completed"
+        ).length;
+
+}
+
+
+function logout() {
+
+    alert(
+        "Secure login will be connected with the backend."
+    );
+
+}
+
+
+loadOrders();
+
+</script>
+
+</body>
+</html>
